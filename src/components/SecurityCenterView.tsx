@@ -37,7 +37,7 @@ export const SecurityCenterView: React.FC = () => {
         inputValidationActive: true,
         aiOutputValidationActive: true,
         rateLimitingActive: true,
-        geminiModel: 'gemini-2.5-flash',
+        geminiModel: 'gemini-3.6-flash',
         environment: 'development',
       });
     }

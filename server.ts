@@ -15,7 +15,7 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   // Security Middleware
   app.use(express.json({ limit: '1mb' }));
@@ -48,7 +48,7 @@ async function startServer() {
       inputValidationActive: true,
       aiOutputValidationActive: true,
       rateLimitingActive: true,
-      geminiModel: 'gemini-2.5-flash',
+      geminiModel: 'gemini-3.6-flash',
       environment: process.env.NODE_ENV || 'development',
     });
   });

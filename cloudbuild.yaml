@@ -1,0 +1,13 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - asia-south2-docker.pkg.dev/personal-gemini-journal-7153b/personal-gemini-journal/app:latest
+      - .
+
+images:
+  - asia-south2-docker.pkg.dev/personal-gemini-journal-7153b/personal-gemini-journal/app:latest
+
+options:
+  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
