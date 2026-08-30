@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default deny all access across the entire database
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions for security and ownership verification
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isTimestamp(val) {
+      return val is timestamp || val is string;
+    }
+
+    // User Profile Document
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && request.resource.data.keys().hasAll(['email', 'updatedAt'])
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 256;
+      allow delete: if isOwner(userId);
+    }
+
+    // User Journals Subcollection
+    // Strict isolation: users/{userId}/journals/{journalId}
+    match /users/{userId}/journals/{journalId} {
+      // 1. Read: ONLY the authenticated owner can read their own journal
+      allow read: if isOwner(userId);
+
+      // 2. Delete: ONLY the authenticated owner can delete their own journal
+      allow delete: if isOwner(userId);
+
+      // 3. Create: Strict validation of fields, ownership, and string size constraints
+      allow create: if isOwner(userId)
+        // Verify document contains valid userId matching path and auth
+        && request.resource.data.userId == userId
+        && request.resource.data.userId == request.auth.uid
+        // Mandatory fields
+        && request.resource.data.keys().hasAll(['userId', 'title', 'conversation', 'createdAt', 'updatedAt'])
+        // Field type and length restrictions (prevent massive payloads / storage abuse)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() <= 300
+        && request.resource.data.conversation is list
+        && request.resource.data.conversation.size() <= 100
+        // Optional summary / insights / actionItems validation
+        && (!('summary' in request.resource.data) || (request.resource.data.summary is string && request.resource.data.summary.size() <= 5000))
+        && (!('keyInsights' in request.resource.data) || request.resource.data.keyInsights is list)
+        && (!('actionItems' in request.resource.data) || request.resource.data.actionItems is list)
+        && (!('topics' in request.resource.data) || request.resource.data.topics is list);
+
+      // 4. Update: Must preserve ownership and validate updated content
+      allow update: if isOwner(userId)
+        // Prevent ownership transfer or tampering with userId
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.createdAt == resource.data.createdAt
+        // Size restrictions
+        && request.resource.data.title is string
+        && request.resource.data.title.size() <= 300
+        && request.resource.data.conversation is list
+        && request.resource.data.conversation.size() <= 100
+        && (!('summary' in request.resource.data) || (request.resource.data.summary is string && request.resource.data.summary.size() <= 5000))
+        && (!('keyInsights' in request.resource.data) || request.resource.data.keyInsights is list)
+        && (!('actionItems' in request.resource.data) || request.resource.data.actionItems is list)
+        && (!('topics' in request.resource.data) || request.resource.data.topics is list);
+    }
+  }
+}
